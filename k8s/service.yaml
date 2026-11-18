@@ -1,0 +1,13 @@
+# ClusterIP: reachable only from inside the cluster (no NodePort/LoadBalancer/Ingress).
+apiVersion: v1
+kind: Service
+metadata:
+  name: calculator-api
+spec:
+  type: ClusterIP
+  selector:
+    app: calculator-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
