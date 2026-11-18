@@ -24,12 +24,32 @@ Resposta esperada: `{"result":3}`
 
 **3. Alterar a API e fazer um novo deploy** (precisa também de `docker`)
 
+O cluster baixa a imagem de um registry (Docker Hub, ECR, GHCR…). Por isso, a imagem nova precisa ser enviada para um registry em que você tenha permissão de escrita e que o cluster consiga acessar.
+
 Edite o `main.go` e rode:
 
 ```bash
 IMAGE=<seu-registry>/calculator-api:v2      # use uma tag nova a cada deploy
 docker build -t $IMAGE .
-docker push $IMAGE                           # no kind: kind load docker-image $IMAGE --name <cluster>
+docker push $IMAGE
+kubectl -n calculator set image deployment/calculator-api calculator-api=$IMAGE
+kubectl -n calculator rollout status deployment/calculator-api
+```
+
+Exemplos de valor para `IMAGE`:
+
+| Registry | `IMAGE` |
+| --- | --- |
+| Docker Hub | `docker.io/<usuario>/calculator-api:v2` |
+| Amazon ECR | `<conta>.dkr.ecr.<regiao>.amazonaws.com/calculator-api:v2` |
+| GitHub (GHCR) | `ghcr.io/<usuario>/calculator-api:v2` |
+
+Num cluster [kind](https://kind.sigs.k8s.io/), não precisa de registry. Use qualquer nome e troque o `docker push` por `kind load`:
+
+```bash
+IMAGE=local/calculator-api:v2
+docker build -t $IMAGE .
+kind load docker-image $IMAGE --name <nome-do-cluster>
 kubectl -n calculator set image deployment/calculator-api calculator-api=$IMAGE
 kubectl -n calculator rollout status deployment/calculator-api
 ```
