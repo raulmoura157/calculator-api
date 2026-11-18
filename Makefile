@@ -30,7 +30,7 @@ kind-deploy: build
 	$(MAKE) apply IMAGE=$(IMAGE)
 
 apply:
-	kubectl kustomize k8s | sed 's|$(DEFAULT_IMAGE)|$(IMAGE)|' | kubectl apply -f -
+	sed 's|$(DEFAULT_IMAGE)|$(IMAGE)|' k8s/calculator-api.yaml | kubectl apply -f -
 	kubectl -n calculator rollout status deployment/calculator-api --timeout=120s
 
 # Calls the API from a throwaway pod inside the cluster.
@@ -39,4 +39,4 @@ smoke:
 		sh -c 'for op in sum sub mul div; do curl -s "http://calculator-api:8000/api/$$op?term_one=8&term_two=2"; done; curl -s http://calculator-api:8000/healthz'
 
 undeploy:
-	kubectl delete -k k8s --ignore-not-found
+	kubectl delete -f k8s/calculator-api.yaml --ignore-not-found

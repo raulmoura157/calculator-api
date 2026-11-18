@@ -24,7 +24,7 @@ API HTTP em Go (só biblioteca padrão) com as quatro operações básicas, empa
 **Opção 1: imagem publicada (não precisa de Docker)**
 
 ```bash
-kubectl apply -k k8s
+kubectl apply -f k8s/calculator-api.yaml
 kubectl -n calculator rollout status deployment/calculator-api
 ```
 
@@ -64,7 +64,7 @@ De outro namespace, o endereço é `http://calculator-api.calculator.svc.cluster
 ## Remover
 
 ```bash
-make undeploy        # equivale a: kubectl delete -k k8s
+make undeploy        # equivale a: kubectl delete -f k8s/calculator-api.yaml
 ```
 
 Isso apaga o namespace `calculator` e tudo o que está dentro dele.
@@ -84,6 +84,6 @@ O CI (`.github/workflows/ci.yml`) roda `go vet` e os testes, publica `coverage.h
 main.go            API (handlers + healthcheck)
 main_test.go       testes de tabela via httptest
 Dockerfile         build multi-stage, imagem final distroless, usuário não-root
-k8s/               Namespace, Deployment (probes, resources, securityContext) e Service ClusterIP
+k8s/calculator-api.yaml   Namespace, Deployment (probes, resources, securityContext) e Service ClusterIP
 Makefile           test, cover, build, deploy, kind-deploy, smoke, undeploy
 ```

@@ -1,6 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: calculator
+---
+# ClusterIP: reachable only from inside the cluster (no NodePort/LoadBalancer/Ingress).
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: calculator
+  name: calculator-api
+spec:
+  type: ClusterIP
+  selector:
+    app: calculator-api
+  ports:
+    - name: http
+      port: 8000
+      targetPort: http
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: calculator
   name: calculator-api
   labels:
     app: calculator-api
@@ -25,6 +46,7 @@ spec:
       containers:
         - name: calculator-api
           image: ghcr.io/raulmoura157/calculator-api:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - name: http
               containerPort: 8000
