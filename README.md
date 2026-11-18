@@ -1,7 +1,5 @@
 # calculator-api
 
-Solução do teste para a vaga de SRE: uma **aplicação web** (API em Go) com as quatro operações básicas, e o **deploy** dela em Kubernetes.
-
 ## Passo a passo
 
 Precisa só de `kubectl` apontando para o cluster. Todos os comandos rodam a partir da raiz do repositório.
