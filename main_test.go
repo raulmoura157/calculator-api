@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestAPI(t *testing.T) {
@@ -53,5 +56,43 @@ func TestMethodNotAllowed(t *testing.T) {
 	newMux().ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/api/sum?term_one=1&term_two=1", nil))
 	if rec.Code != http.StatusMethodNotAllowed {
 		t.Fatalf("status = %d, want 405", rec.Code)
+	}
+}
+
+func TestRunShutsDownGracefully(t *testing.T) {
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	addr := l.Addr().String()
+	l.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() { done <- run(ctx, addr, 0) }()
+
+	var resp *http.Response
+	for i := 0; i < 50; i++ {
+		if resp, err = http.Get("http://" + addr + "/healthz"); err == nil {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+	}
+	if err != nil {
+		t.Fatalf("server never came up: %v", err)
+	}
+	resp.Body.Close()
+
+	cancel()
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("run returned %v, want nil", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("run did not return after cancel")
+	}
+	if _, err := http.Get("http://" + addr + "/healthz"); err == nil {
+		t.Fatal("server still accepting connections after shutdown")
 	}
 }

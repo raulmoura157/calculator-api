@@ -68,7 +68,7 @@ curl "localhost:8000/api/sum?term_one=4&term_two=1"
    kubectl -n calculator rollout status deployment/calculator-api
    ```
 
-O rollout é gradual (`maxUnavailable: 0`) e só avança quando o `readinessProbe` em `/healthz` responde. Use sempre uma tag nova: repetir a mesma tag não gera rollout.
+O rollout é gradual (`maxUnavailable: 0`) e só avança quando o `readinessProbe` em `/healthz` responde. Ao receber `SIGTERM`, a aplicação continua atendendo por 5 s (tempo para o Kubernetes tirar o pod do Service) e então encerra as requisições em andamento antes de sair, então o rollout não derruba requisições. Use sempre uma tag nova: repetir a mesma tag não gera rollout.
 
 ## Remover
 

@@ -1,11 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 )
 
 var errDivByZero = errors.New("division by zero")
@@ -60,7 +65,38 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
+// run serves until ctx is cancelled, keeps serving for drainDelay (so Kubernetes can
+// remove the pod from the Service endpoints), then drains in-flight requests.
+func run(ctx context.Context, addr string, drainDelay time.Duration) error {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           newMux(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+	errCh := make(chan error, 1)
+	go func() { errCh <- srv.ListenAndServe() }()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+	}
+	time.Sleep(drainDelay)
+	// Must finish before Kubernetes' terminationGracePeriodSeconds (30s default) sends SIGKILL.
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	return srv.Shutdown(shutdownCtx)
+}
+
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, os.Interrupt)
+	defer stop()
 	log.Println("listening on :8000")
-	log.Fatal(http.ListenAndServe(":8000", newMux()))
+	if err := run(ctx, ":8000", 5*time.Second); err != nil {
+		log.Fatal(err)
+	}
+	log.Println("shutdown complete")
 }
